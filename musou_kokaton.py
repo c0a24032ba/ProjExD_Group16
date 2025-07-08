@@ -247,7 +247,23 @@ class Score:
         screen.blit(self.image, self.rect)
 
 
+class Wave(pg.sprite.Sprite):
+    """
+    30秒毎にこうかとんから広がる円で攻撃
+    """
+    def __init__(self, bird) -> None:
+        super().__init__()
+        self.bird = bird
+        self.radius = 0
+        self.image = pg.Surface((WIDTH, HEIGHT), pg.SRCALPHA)
+        self.rect = self.image.get_rect()
 
+    def update(self) -> None:
+        self.radius += 20
+        self.image.fill((0, 0, 0, 0))
+        pg.draw.circle(self.image, (0, 255, 255, 100), self.bird.rect.center, self.radius)
+        if self.radius > max(WIDTH, HEIGHT):
+            self.kill()
 
 
 def main():
@@ -263,6 +279,7 @@ def main():
     emp_effect = None
     shields = pg.sprite.Group()
     gravitys = pg.sprite.Group()
+    waves = pg.sprite.Group()
 
     tmr = 0
     clock = pg.time.Clock()
@@ -313,6 +330,24 @@ def main():
         for bomb in pg.sprite.groupcollide(bombs, shields, True, True).keys():#シールドと衝突した爆弾リスト
             exps.add(Explosion(bomb, 50))
 
+        if tmr % 1500 == 0 and tmr != 0:
+            waves.add(Wave(bird))
+        #円と敵の距離を比較してあたり判定
+        for wave in waves:
+            for emy in emys:
+                if math.hypot(wave.bird.rect.centerx - emy.rect.centerx,
+                      wave.bird.rect.centery - emy.rect.centery) < wave.radius:
+                    exps.add(Explosion(emy, 100)) 
+                    emy.kill()                    
+                    score.value += 10
+
+            for bomb in bombs:
+                if math.hypot(wave.bird.rect.centerx - bomb.rect.centerx,
+                      wave.bird.rect.centery - bomb.rect.centery) < wave.radius:  # ← 修正
+                    exps.add(Explosion(bomb, 50))
+                    bomb.kill()
+                    score.value += 1
+
 
         bird.update(key_lst, screen)
         gravitys.update()
@@ -327,6 +362,8 @@ def main():
         exps.draw(screen)
         shields.update()
         shields.draw(screen)
+        waves.update()
+        waves.draw(screen)
         score.update(screen)
         pg.display.update()
         tmr += 1
@@ -338,4 +375,3 @@ if __name__ == "__main__":
     main()
     pg.quit()
     sys.exit()
-    
