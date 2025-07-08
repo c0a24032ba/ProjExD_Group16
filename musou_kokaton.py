@@ -262,7 +262,6 @@ class Cross_hairs(pg.sprite.Sprite):
     def update(self, screen: pg.Surface):
         mouse_pos = pg.mouse.get_pos()
         self.rect.center = mouse_pos
-        print(mouse_pos)
         screen.blit(self.image, self.rect)
 
 
@@ -288,8 +287,8 @@ def main():
             if event.type == pg.QUIT:
                 return
             
-            if mouse_lst[0]:
-                beams.add(Beam(bird,  aim.rect))
+        if (mouse_lst[0]) and (tmr%10 == 0):
+            beams.add(Beam(bird,  aim.rect))
 
         screen.blit(bg_img, [0, 0])
 
