@@ -247,7 +247,28 @@ class Score:
         screen.blit(self.image, self.rect)
 
 
+class Heal(pg.sprite.Sprite):
+    """
+    回復に関するクラス
+    """
+    def __init__(self):
+        super().__init__()
+        self.image = pg.transform.rotozoom(pg.image.load(f"fig/heal.png"), 0, 0.03)
+        self.rect = self.image.get_rect()
+        self.rect.center = random.randint(50, WIDTH-50), 50
+        self.vx, self.vy = random.randint(3,5), random.randint(3,5)
 
+    def update(self):
+        """
+        回復アイテムを速度ベクトルself.vx, self.vyに基づき移動させる
+        引数 screen：画面Surface
+        """
+        yoko, tate = check_bound(self.rect)
+        if not yoko:
+            self.vx *= -1
+        if not tate:
+            self.vy *= -1
+        self.rect.move_ip(self.vx, self.vy)
 
 
 def main():
@@ -258,6 +279,7 @@ def main():
     bird = Bird(3, (900, 400))
     bombs = pg.sprite.Group()
     beams = pg.sprite.Group()
+    heals = pg.sprite.Group()
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
 
@@ -279,6 +301,8 @@ def main():
 
         if tmr % 200 == 0:  # 200フレームに1回，敵機を出現させる
             emys.add(Enemy())
+            if not heals:  # 回復アイテムが存在していなければ、出現させる
+                heals.add(Heal())
 
         for emy in emys:
             # 敵機が停止状態に入ったら，intervalに応じて爆弾投下
@@ -300,6 +324,10 @@ def main():
             pg.display.update()
             time.sleep(2)
             return
+        
+        for heal in pg.sprite.spritecollide(bird, heals, True):  # こうかとんと衝突した回復アイテムリスト
+            bird.change_img(9, screen) # こうかとん喜びエフェクト
+            hp.value += x #hpをxの分だけ回復する
 
 
         bird.update(key_lst, screen)
@@ -309,6 +337,8 @@ def main():
         emys.draw(screen)
         bombs.update()
         bombs.draw(screen)
+        heals.update()
+        heals.draw(screen)
         exps.update()
         exps.draw(screen)
         score.update(screen)
