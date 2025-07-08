@@ -32,8 +32,10 @@ class player(pg.sprite.Sprite):
         if path!="":
             if animation:
                 self.anime=[]
+                self.base_anime=[]
                 for i in range(frame_len):
                     self.anime.append(path+str(i)+image_tag)
+                    self.base_anime.append(path+str(i)+image_tag)
                 self.image=pg.transform.rotozoom(pg.image.load(self.anime[0]).convert_alpha(), angle, size)
                 self.rect=self.image.get_rect()
             else:
@@ -53,9 +55,11 @@ class player(pg.sprite.Sprite):
         self.frame_fps=frame_fps
         self.frame_counter=0
         self.direction=0
+        self.frag=False
 
-    def animetion(self, path="", image_tag="", frame_len=0):
+    def animetion(self, path="", image_tag="", frame_len=0, frame_rate=3):
         self.anime=[]
+        self.frag = True
         for i in range(frame_len):
             self.anime.append(pg.transform.rotozoom(pg.image.load(path+str(i)+image_tag)))
 
@@ -80,15 +84,27 @@ class player(pg.sprite.Sprite):
                 self.frame_counter+=1
                 self.image=pg.transform.rotozoom(pg.image.load(self.anime[self.frame_counter%self.frame]).convert_alpha(), 0, self.size)
                 if self.direction==1:
-                        self.image=pg.transform.flip(pg.transform.rotozoom(pg.image.load(self.anime[self.frame_counter%self.frame]).convert_alpha(), 0, self.size),
+                    self.image=pg.transform.flip(pg.transform.rotozoom(pg.image.load(self.anime[self.frame_counter%self.frame]).convert_alpha(), 0, self.size),
                                                        True, False)
         else:
-            self.image=pg.transform.rotozoom(pg.image.load(self.anime[0]).convert_alpha(), 0, self.size)
-            if self.direction==1:
-                self.image=pg.transform.flip(pg.transform.rotozoom(pg.image.load(self.anime[0]).convert_alpha(), 0, self.size),
-                                                   True, False)
+            if not self.frag:
+                if self.direction==1:
+                    self.image=pg.transform.flip(pg.transform.rotozoom(pg.image.load(self.anime[0]).convert_alpha(), 0, self.size),
+                                                    True, False)
+                else:
+                    self.image=pg.transform.rotozoom(pg.image.load(self.anime[0]).convert_alpha(), 0, self.size)
+            else:
+                if self.counter%self.frame_fps==0:
+                    self.frame_counter+=1
+                    self.image=pg.transform.rotozoom(pg.image.load(self.anime[self.frame_counter%self.frame]).convert_alpha(), 0, self.size)
+                    if self.direction==1:
+                        self.image=pg.transform.flip(pg.transform.rotozoom(pg.image.load(self.anime[self.frame_counter%self.frame]).convert_alpha(), 0, self.size),
+                                                       True, False)
+                self.anime.remove(self.anime[self.frame_counter%self.frame])
         self.counter+=1
-
+        if self.anime==[]:
+            self.anime = self.base_anime
+            
     def draw(self, screen: pg.Surface):
         screen.blit(self.image, self.rect)
 
@@ -118,13 +134,26 @@ class Map_tile(pg.sprite.Sprite):
 
 def main():
     screen = pg.display.set_mode((map_width, map_height))
+    size=0.5
+    speed=5
+    frame=6
+    zombie=player("image/Animation/zombie_walk/pixil-frame-", ".png", 
+                   (map_width/2, map_height/2), (0, 0), 0, size, speed, True, frame, 3)
     clock = pg.time.Clock()
+    player_group = pg.sprite.Group()
+    game_group = pg.sprite.Group()
+    player_group.add(zombie)
+    game_group.add(player_group)
     counter = 0
     while(True):
         for event in pg.event.get():
             if event.type==pg.QUIT:
                 return
+            if event.type==pg.K_SPACE:
+                zombie.animetion("image/Animation/zom")
         screen.fill((50, 50, 50))
+        game_group.update()
+        game_group.draw(screen)
         pg.display.update()
         clock.tick(30)
         counter += 1
