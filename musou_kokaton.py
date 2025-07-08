@@ -287,11 +287,15 @@ def main():
             if event.type == pg.QUIT:
                 return
             
-        if (mouse_lst[0]) and (tmr%10 == 0):
+        if (mouse_lst[0]) and  (not mouse_pressed):
             beams.add(Beam(bird,  aim.rect))
-
+            
+        if mouse_lst[0]:
+            mouse_pressed = True
+        else:
+            mouse_pressed = False
         screen.blit(bg_img, [0, 0])
-
+        
 
         if tmr % 200 == 0:  # 200フレームに1回，敵機を出現させる
             emys.add(Enemy())
