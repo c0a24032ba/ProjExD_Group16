@@ -145,22 +145,23 @@ class Beam(pg.sprite.Sprite):
     """
     ビームに関するクラス
     """
-    def __init__(self, bird: Bird, angle: float = 0):
+    def __init__(self, bird: Bird, cross_hairs: pg.Rect):
         """
         ビーム画像Surfaceを生成する
         引数 bird：ビームを放つこうかとん
         """
         super().__init__()
         self.vx, self.vy = bird.dire
-        base_angle = math.degrees(math.atan2(-bird.dire[1], bird.dire[0]))
-        total_angle = base_angle + angle
+        base_angle = math.degrees(math.atan2(-(cross_hairs.centery-bird.rect.center[1]), 
+                                             (cross_hairs.centerx-bird.rect.center[0])))
+        total_angle = base_angle
         self.vx = math.cos(math.radians(total_angle))
         self.vy = -math.sin(math.radians(total_angle))
-        self.image = pg.transform.rotozoom(pg.image.load(f"fig/beam.png"), total_angle, 1.0)
+        self.image = pg.transform.rotozoom(pg.image.load(f"fig/beam2.png"), total_angle, 0.2)
         self.rect = self.image.get_rect()
         self.rect.centery = bird.rect.centery+bird.rect.height*self.vy
         self.rect.centerx = bird.rect.centerx+bird.rect.width*self.vx
-        self.speed = 10
+        self.speed = 30
 
     def update(self):
         """
@@ -247,7 +248,22 @@ class Score:
         screen.blit(self.image, self.rect)
 
 
+class Cross_hairs(pg.sprite.Sprite):
+    """
+    マウスに追従する照準のクラス
+    """
+    def __init__(self, pos: tuple):
+        super().__init__()
+        self.image = pg.transform.rotozoom(pg.image.load("fig/cross_hairs.png").convert_alpha(), 0, 0.3)
+        self.rect = self.image.get_rect()
+        self.rect.centerx = pos[0]
+        self.rect.centery = pos[1]
 
+    def update(self, screen: pg.Surface):
+        mouse_pos = pg.mouse.get_pos()
+        self.rect.center = mouse_pos
+        print(mouse_pos)
+        screen.blit(self.image, self.rect)
 
 
 def main():
@@ -260,22 +276,20 @@ def main():
     beams = pg.sprite.Group()
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
-    emp_effect = None
-    shields = pg.sprite.Group()
-    gravitys = pg.sprite.Group()
-
+    aim = Cross_hairs(pg.mouse.get_pos())
+    pg.mouse.set_visible(False)
     tmr = 0
     clock = pg.time.Clock()
     score.value=100
     while True:
         key_lst = pg.key.get_pressed()
+        mouse_lst = pg.mouse.get_pressed()
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return
             
-            if event.type == pg.KEYDOWN:
-                if event.key == pg.K_SPACE:
-                    beams.add(Beam(bird))
+            if mouse_lst[0]:
+                beams.add(Beam(bird,  aim.rect))
 
         screen.blit(bg_img, [0, 0])
 
@@ -309,14 +323,9 @@ def main():
                 pg.display.update()
                 time.sleep(2)
                 return
-        
-        for bomb in pg.sprite.groupcollide(bombs, shields, True, True).keys():#シールドと衝突した爆弾リスト
-            exps.add(Explosion(bomb, 50))
-
 
         bird.update(key_lst, screen)
-        gravitys.update()
-        gravitys.draw(screen)
+        aim.update(screen)
         beams.update()
         beams.draw(screen)
         emys.update() 
@@ -325,8 +334,6 @@ def main():
         bombs.draw(screen)
         exps.update()
         exps.draw(screen)
-        shields.update()
-        shields.draw(screen)
         score.update(screen)
         pg.display.update()
         tmr += 1
