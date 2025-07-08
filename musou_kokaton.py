@@ -260,9 +260,6 @@ def main():
     beams = pg.sprite.Group()
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
-    emp_effect = None
-    shields = pg.sprite.Group()
-    gravitys = pg.sprite.Group()
 
     tmr = 0
     clock = pg.time.Clock()
@@ -298,25 +295,14 @@ def main():
             score.value += 1  # 1点アップ
 
         for bomb in pg.sprite.spritecollide(bird, bombs, True):  # こうかとんと衝突した爆弾リスト
-            if hasattr(bomb, "inactive") and bomb.inactive:
-                continue
-            if bird.state == "hyper":
-                exps.add(Explosion(bomb, 50))
-                score.value += 1
-            else:
-                bird.change_img(8, screen)  # こうかとん悲しみエフェクト
-                score.update(screen)
-                pg.display.update()
-                time.sleep(2)
-                return
-        
-        for bomb in pg.sprite.groupcollide(bombs, shields, True, True).keys():#シールドと衝突した爆弾リスト
-            exps.add(Explosion(bomb, 50))
+            bird.change_img(8, screen)  # こうかとん悲しみエフェクト
+            score.update(screen)
+            pg.display.update()
+            time.sleep(2)
+            return
 
 
         bird.update(key_lst, screen)
-        gravitys.update()
-        gravitys.draw(screen)
         beams.update()
         beams.draw(screen)
         emys.update() 
@@ -325,8 +311,6 @@ def main():
         bombs.draw(screen)
         exps.update()
         exps.draw(screen)
-        shields.update()
-        shields.draw(screen)
         score.update(screen)
         pg.display.update()
         tmr += 1
