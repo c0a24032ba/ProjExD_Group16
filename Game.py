@@ -35,6 +35,7 @@ class player(pg.sprite.Sprite):
                 self.base_anime=[]
                 self.base_frame=frame_len
                 self.base_size=size
+                self.base_speed=speed
                 for i in range(frame_len):
                     self.anime.append(path+str(i)+image_tag)
                     self.base_anime.append(path+str(i)+image_tag)
@@ -97,6 +98,7 @@ class player(pg.sprite.Sprite):
                 else:
                     self.image=pg.transform.rotozoom(pg.image.load(self.anime[0]).convert_alpha(), 0, self.size)
             else:
+                self.speed*=0.5
                 if self.counter%self.frame_fps==0:
                     self.frame_counter+=1
                     self.image=pg.transform.rotozoom(pg.image.load(self.anime[self.frame_counter%self.frame]).convert_alpha(), 0, self.size)
@@ -107,6 +109,7 @@ class player(pg.sprite.Sprite):
                         self.frag = False
                         self.anime = []
                         self.size = self.base_size
+                        self.speed = self.base_speed
         self.counter+=1
         if self.anime==[]:
             self.anime = self.base_anime
