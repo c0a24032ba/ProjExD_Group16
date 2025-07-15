@@ -80,7 +80,8 @@ class player(pg.sprite.Sprite):
             if key_lst[key]:
                 sum_move[0]+=item[0]
                 sum_move[1]+=item[1]
-        self.rect.move_ip(sum_move)
+        self.sum_move = sum_move
+        # self.rect.move_ip(sum_move)
         if check_bound(self.rect)!=(True, True):
             self.rect.move_ip(-sum_move[0], -sum_move[1])
         if (sum_move!=[0, 0]) and (not self.frag):
@@ -123,24 +124,35 @@ class Map_tile(pg.sprite.Sprite):
     """
     マップタイルを表示するクラス
     """
-    def __init__(self, path: str, pos: tuple, angle: int, size: int, collide: bool):
+    def __init__(self, path: str, pos: tuple, angle: int, size: int, collide: bool, player: player):
         super().__init__()
         self.path = path
         self.angle = angle
         self.size = size
         self.collide = collide
+        self.player = player
         self.image = pg.transform.rotozoom(pg.image.load(path), self.angle, self.size)
         self.rect = self.image.get_rect()
         self.image.set_colorkey((0, 0, 0))
-        self.rect.centerx = pos[0]
-        self.rect.centery = pos[1]
+        self.rect.centerx = pos[0] * self.rect.width
+        self.rect.centery = pos[1] * self.rect.height
 
-    def update(self, base_rect: pg.Rect):
-        self.rect.centerx = base_rect.centerx      
-        self.rect.centery = base_rect.centery
+    def update(self):
+        self.rect.move_ip(-self.player.sum_move[0], -self.player.sum_move[1])
           
     def draw(self, screen: pg.Surface):
         screen.blit(self.image, self.rect)
+
+
+def room1():
+    map_lst = []
+    map_col = []
+    for i in range(6):
+        for j in range(6):
+            map_col.append(1)
+        map_lst.append(map_col)
+        map_col = []
+
 
 def main():
     screen = pg.display.set_mode((map_width, map_height))
@@ -154,6 +166,8 @@ def main():
     game_group = pg.sprite.Group()
     player_group.add(zombie)
     game_group.add(player_group)
+    tile = Map_tile("image/map/map_tile/pixil-frame-0.png", (1, 1), 0, 1, False, zombie)
+    game_group.add(tile)
     counter = 0
     while(True):
         for event in pg.event.get():
