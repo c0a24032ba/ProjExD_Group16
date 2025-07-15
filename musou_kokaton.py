@@ -327,7 +327,7 @@ def main():
         
         for heal in pg.sprite.spritecollide(bird, heals, True):  # こうかとんと衝突した回復アイテムリスト
             bird.change_img(9, screen) # こうかとん喜びエフェクト
-            hp.value += x #hpをxの分だけ回復する
+            hp.value += 10 #hpを10回復する
 
 
         bird.update(key_lst, screen)
