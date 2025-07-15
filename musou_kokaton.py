@@ -145,22 +145,23 @@ class Beam(pg.sprite.Sprite):
     """
     ビームに関するクラス
     """
-    def __init__(self, bird: Bird, angle: float = 0):
+    def __init__(self, bird: Bird, cross_hairs: pg.Rect):
         """
         ビーム画像Surfaceを生成する
         引数 bird：ビームを放つこうかとん
         """
         super().__init__()
         self.vx, self.vy = bird.dire
-        base_angle = math.degrees(math.atan2(-bird.dire[1], bird.dire[0]))
-        total_angle = base_angle + angle
+        base_angle = math.degrees(math.atan2(-(cross_hairs.centery-bird.rect.center[1]), 
+                                             (cross_hairs.centerx-bird.rect.center[0])))
+        total_angle = base_angle
         self.vx = math.cos(math.radians(total_angle))
         self.vy = -math.sin(math.radians(total_angle))
-        self.image = pg.transform.rotozoom(pg.image.load(f"fig/beam.png"), total_angle, 1.0)
+        self.image = pg.transform.rotozoom(pg.image.load(f"image/bullet.png"), total_angle-90, 0.8)
         self.rect = self.image.get_rect()
         self.rect.centery = bird.rect.centery+bird.rect.height*self.vy
         self.rect.centerx = bird.rect.centerx+bird.rect.width*self.vx
-        self.speed = 10
+        self.speed = 50
 
     def update(self):
         """
@@ -176,27 +177,31 @@ class Explosion(pg.sprite.Sprite):
     """
     爆発に関するクラス
     """
-    def __init__(self, obj: "Bomb|Enemy", life: int):
+    def __init__(self, obj: "Bomb|Enemy"):
         """
         爆弾が爆発するエフェクトを生成する
         引数1 obj：爆発するBombまたは敵機インスタンス
         引数2 life：爆発時間
         """
         super().__init__()
-        img = pg.image.load(f"fig/explosion.gif")
-        self.imgs = [img, pg.transform.flip(img, 1, 1)]
-        self.image = self.imgs[0]
+        self.anime = []
+        for i in range(5):
+            self.anime.append("image/Animation/explotion/pixil-frame-"+str(i)+".png")
+        self.image = pg.transform.rotozoom(pg.image.load(self.anime[0]), 0, 1)
         self.rect = self.image.get_rect(center=obj.rect.center)
-        self.life = life
+        self.life = 0
+        self.counter = 0
 
     def update(self):
         """
         爆発時間を1減算した爆発経過時間_lifeに応じて爆発画像を切り替えることで
         爆発エフェクトを表現する
         """
-        self.life -= 1
-        self.image = self.imgs[self.life//10%2]
-        if self.life < 0:
+        if self.counter % 3 == 0:
+            self.image = pg.transform.rotozoom(pg.image.load(self.anime[self.life]), 0, 1)
+            self.life += 1
+        self.counter += 1
+        if self.life > 4:
             self.kill()
 
 
@@ -247,7 +252,120 @@ class Score:
         screen.blit(self.image, self.rect)
 
 
+class Cross_hairs(pg.sprite.Sprite):
+    """
+    マウスに追従する照準のクラス
+    """
+    def __init__(self, pos: tuple):
+        super().__init__()
+        self.image = pg.transform.rotozoom(pg.image.load("fig/cross_hairs.png").convert_alpha(), 0, 0.3)
+        self.rect = self.image.get_rect()
+        self.rect.centerx = pos[0]
+        self.rect.centery = pos[1]
 
+    def update(self, screen: pg.Surface):
+        mouse_pos = pg.mouse.get_pos()
+        self.rect.center = mouse_pos
+        screen.blit(self.image, self.rect)
+
+
+class Cartridge(pg.sprite.Sprite):
+
+    def __init__(self, pos: tuple, angle: int, 
+                max_x: int, min_x: int, 
+                accelerate: int):
+        super().__init__()
+        self.vx = random.randint(min_x, max_x)
+        self.vy = 0
+        self.acc = accelerate
+        self.angle = angle
+        self.image = pg.transform.rotozoom(pg.image.load("image/cartridge.png"), angle, 0.5)
+        self.rect = self.image.get_rect()
+        self.rect.center = pos
+        self.life = 20
+        self.sound1 = pg.mixer.Sound("sounds/drop_1.mp3")
+        self.sound1.set_volume(0.1)
+        self.sound2 = pg.mixer.Sound("sounds/drop_2.mp3")
+        self.sound2.set_volume(0.1)
+        self.sound3 = pg.mixer.Sound("sounds/drop_3.mp3")
+        self.sound3.set_volume(0.1)
+        self.sounds = [self.sound1, self.sound2, self.sound3]
+        self.random = random.randint(0, 2)
+
+    def update(self):
+        self.image = pg.transform.rotate(self.image, self.angle)
+        self.angle += self.angle
+        self.rect.move_ip(self.vx, self.vy)
+        self.vy += self.acc
+        self.life -= 1
+        if (check_bound(self.rect) != (True, True)) or (self.life < 0):
+            if self.random == 0:
+                self.sound1.play()
+            elif self.random == 1:
+                self.sound2.play()
+            else:
+                self.sound3.play()
+            self.kill()
+
+
+class Gun(pg.sprite.Sprite):
+    """
+    機関銃のクラス
+    """
+    def __init__(self, bird: Bird, target_rect: pg.Rect, 
+                 frame_rate: int, frame_len: int,
+                 sprite_lst: list, group_lst: list):
+        super().__init__()
+        self.anime = []
+        self.counter = 0
+        self.frag = False
+        self.size = 0.8
+        self.frame_rate = frame_rate
+        self.frame_len = frame_len
+        self.frame_counter = 0
+        self.sound1 = pg.mixer.Sound("sounds/fire.wav")
+        self.sound1.set_volume(0.7)
+        self.sound2 = pg.mixer.Sound("sounds/fire2.mp3")
+        self.sound2.set_volume(0.1)
+        self.sprite = sprite_lst
+        self.group = group_lst
+        for i in range(frame_len):
+            self.anime.append("image/Animation/Gun_fire/pixil-frame-" + str(i) + ".png")
+        self.angle = math.degrees(math.atan2(-(target_rect.centery-bird.rect.center[1]), 
+                                             (target_rect.centerx-bird.rect.center[0])))
+        self.image = pg.transform.rotozoom(pg.image.load(self.anime[0]).convert_alpha(), self.angle, self.size)
+        self.rect = self.image.get_rect()
+    
+    def update(self, screen: pg.Surface, bird: Bird, target_rect: pg.Rect):
+        self.angle = math.degrees(math.atan2(-(target_rect.centery-bird.rect.center[1]), 
+                                             (target_rect.centerx-bird.rect.center[0]))) - 90
+        key_lst = pg.mouse.get_pressed()
+        if key_lst[0]:
+            self.frag = True
+        else:
+            self.frag = False
+            self.frame_counter = 0
+        if self.frag:
+            if self.counter%self.frame_rate == 0:
+                self.frame_counter += 1
+                if self.frame_counter%self.frame_len == 1:
+                    self.group[0].add(self.sprite[0](bird, target_rect))
+                    self.sound1.play(0)
+                    self.sound2.play(0)
+                if self.frame_counter%self.frame_len == 3:
+                    self.group[1].add(self.sprite[1]((self.rect.centerx + math.cos(math.radians(-self.angle)) * 50,
+                                                      self.rect.centery + math.sin(math.radians(-self.angle)) * 50), 2, -1, -4, 2))
+                    self.group[1].add(self.sprite[1]((self.rect.centerx + math.cos(math.radians(-self.angle)) * -50,
+                                                      self.rect.centery + math.sin(math.radians(-self.angle)) * -50), -2, 4, 1, 2))
+                self.image = pg.transform.rotozoom(pg.image.load(self.anime[self.frame_counter%self.frame_len]), 
+                                                self.angle, self.size)
+                self.rect = self.image.get_rect()
+        else:
+            self.image = pg.transform.rotozoom(pg.image.load(self.anime[0]), self.angle, self.size)
+            self.rect = self.image.get_rect()
+        self.rect.center = bird.rect.center
+        self.counter += 1
+        screen.blit(self.image, self.rect)
 
 
 def main():
@@ -260,22 +378,27 @@ def main():
     beams = pg.sprite.Group()
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
-
+    cartridges = pg.sprite.Group()
+    aim = Cross_hairs(pg.mouse.get_pos())
+    cartridges.add(Cartridge((WIDTH/2, HEIGHT/2), 90, -1, -4, -0.5))
+    gun = Gun(bird, aim.rect, 1, 4, [Beam, Cartridge], [beams, cartridges])
+    pg.mouse.set_visible(False)
     tmr = 0
     clock = pg.time.Clock()
     score.value=100
     while True:
         key_lst = pg.key.get_pressed()
+        mouse_lst = pg.mouse.get_pressed()
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return
             
-            if event.type == pg.KEYDOWN:
-                if event.key == pg.K_SPACE:
-                    beams.add(Beam(bird))
-
+        if mouse_lst[0]:
+            mouse_pressed = True
+        else:
+            mouse_pressed = False
         screen.blit(bg_img, [0, 0])
-
+        
 
         if tmr % 200 == 0:  # 200フレームに1回，敵機を出現させる
             emys.add(Enemy())
@@ -286,23 +409,34 @@ def main():
                 bombs.add(Bomb(emy, bird))
 
         for emy in pg.sprite.groupcollide(emys, beams, True, True).keys():
-            exps.add(Explosion(emy, 100))  # 爆発エフェクト
+            exps.add(Explosion(emy))  # 爆発エフェクト
             score.value += 10  # 10点アップ
             bird.change_img(6, screen)  # こうかとん喜びエフェクト
 
         for bomb in pg.sprite.groupcollide(bombs, beams, True, True).keys():  # ビームと衝突した爆弾リスト
-            exps.add(Explosion(bomb, 50))  # 爆発エフェクト
+            exps.add(Explosion(bomb))  # 爆発エフェクト
             score.value += 1  # 1点アップ
 
         for bomb in pg.sprite.spritecollide(bird, bombs, True):  # こうかとんと衝突した爆弾リスト
-            bird.change_img(8, screen)  # こうかとん悲しみエフェクト
-            score.update(screen)
-            pg.display.update()
-            time.sleep(2)
-            return
+            if hasattr(bomb, "inactive") and bomb.inactive:
+                continue
+            if bird.state == "hyper":
+                exps.add(Explosion(bomb, 50))
+                score.value += 1
+            else:
+                bird.change_img(8, screen)  # こうかとん悲しみエフェクト
+                score.update(screen)
+                pg.display.update()
+                time.sleep(2)
+                return
+        
+        for bomb in pg.sprite.groupcollide(bombs, shields, True, True).keys():#シールドと衝突した爆弾リスト
+            exps.add(Explosion(bomb, 50))
 
 
         bird.update(key_lst, screen)
+        aim.update(screen)
+        gun.update(screen, bird, aim.rect)
         beams.update()
         beams.draw(screen)
         emys.update() 
@@ -312,6 +446,9 @@ def main():
         exps.update()
         exps.draw(screen)
         score.update(screen)
+        cartridges.update()
+        cartridges.draw(screen)
+        
         pg.display.update()
         tmr += 1
         clock.tick(50)
@@ -319,6 +456,8 @@ def main():
 
 if __name__ == "__main__":
     pg.init()
+    pg.mixer.init()
+    pg.mixer.set_num_channels(100)
     main()
     pg.quit()
     sys.exit()
