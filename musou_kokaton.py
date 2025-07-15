@@ -330,7 +330,8 @@ def main():
         for bomb in pg.sprite.groupcollide(bombs, shields, True, True).keys():#シールドと衝突した爆弾リスト
             exps.add(Explosion(bomb, 50))
 
-        if tmr % 1500 == 0 and tmr != 0:
+        #30秒判定
+        if tmr % 50 == 0 and tmr != 0:
             waves.add(Wave(bird))
         #円と敵の距離を比較してあたり判定
         for wave in waves:
