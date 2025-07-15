@@ -376,7 +376,7 @@ def main():
     emys = pg.sprite.Group()
     cartridges = pg.sprite.Group()
     aim = Cross_hairs(pg.mouse.get_pos())
-    cartridges.add(Cartridge((WIDTH/2, HEIGHT/2), 90, -1, -4, -0.5))
+    # cartridges.add(Cartridge((WIDTH/2, HEIGHT/2), 90, -1, -4, -0.5))
     gun = Gun(bird, aim.rect, 1, 4, [Beam, Cartridge], [beams, cartridges])
     pg.mouse.set_visible(False)
     waves = pg.sprite.Group()
@@ -417,65 +417,63 @@ def main():
             score.value += 1
 
         for bomb in pg.sprite.spritecollide(bird, bombs, True):
-            if hasattr(bomb, "inactive") and bomb.inactive:
-                continue
-            if bird.state == "hyper":
-                exps.add(Explosion(bomb, 50))
-                score.value += 1
-            else:
-                current_hp -= 1 #HPを1減らす
-                if current_hp <= 0: #HPが0以下ならゲームオーバー処理
-                    bird.change_img(8, screen)
-                    score.update(screen)
-                    draw_hp_bar(screen, hp_imgs, current_hp)
-                    pg.display.update()
-                    time.sleep(2)
-                    return
-        
-        for bomb in pg.sprite.groupcollide(bombs, shields, True, True).keys():
-            exps.add(Explosion(bomb, 50))
+            # if hasattr(bomb, "inactive") and bomb.inactive:
+            #     continue
+            # if bird.state == "hyper":
+            #     exps.add(Explosion(bomb, 50))
+            #     score.value += 1
+            # else:
+            current_hp -= 1 #HPを1減らす
+            if current_hp <= 0: #HPが0以下ならゲームオーバー処理
+                bird.change_img(8, screen)
+                score.update(screen)
+                draw_hp_bar(screen, hp_imgs, current_hp)
+                pg.display.update()
+                time.sleep(2)
+                return
         
         for heal in pg.sprite.spritecollide(bird, heals, True):  # こうかとんと衝突した回復アイテムリスト
             bird.change_img(9, screen) # こうかとん喜びエフェクト
-            hp.value += 10 #hpを10回復する
+            # hp.value += 10 #hpを10回復する
+            if current_hp < 8:
+                current_hp += 2 #hpを2回復する
 
         #30秒判定
-        if tmr % 50 == 0 and tmr != 0:
+        if tmr % 1500 == 0 and tmr != 0:
             waves.add(Wave(bird))
         #円と敵の距離を比較してあたり判定
         for wave in waves:
             for emy in emys:
                 if math.hypot(wave.bird.rect.centerx - emy.rect.centerx,
                       wave.bird.rect.centery - emy.rect.centery) < wave.radius:
-                    exps.add(Explosion(emy, 100)) 
-                    emy.kill()                    
-                    score.value += 10
+                    exps.add(Explosion(emy)) 
+                    emy.kill()
+                    score.value += 10                 
 
             for bomb in bombs:
                 if math.hypot(wave.bird.rect.centerx - bomb.rect.centerx,
                       wave.bird.rect.centery - bomb.rect.centery) < wave.radius:  # ← 修正
-                    exps.add(Explosion(bomb, 50))
+                    exps.add(Explosion(bomb))
                     bomb.kill()
                     score.value += 1
 
-        #30秒判定
-        if tmr % 50 == 0 and tmr != 0:
-            waves.add(Wave(bird))
-        #円と敵の距離を比較してあたり判定
-        for wave in waves:
-            for emy in emys:
-                if math.hypot(wave.bird.rect.centerx - emy.rect.centerx,
-                      wave.bird.rect.centery - emy.rect.centery) < wave.radius:
-                    exps.add(Explosion(emy, 100)) 
-                    emy.kill()                    
-                    score.value += 10
+        # #30秒判定
+        # if tmr % 150 == 0 and tmr != 0:
+        #     waves.add(Wave(bird))
+        # #円と敵の距離を比較してあたり判定
+        # for wave in waves:
+        #     for emy in emys:
+        #         if math.hypot(wave.bird.rect.centerx - emy.rect.centerx,
+        #               wave.bird.rect.centery - emy.rect.centery) < wave.radius:
+        #             exps.add(Explosion(emy)) 
+        #             emy.hp -= 2                   
 
-            for bomb in bombs:
-                if math.hypot(wave.bird.rect.centerx - bomb.rect.centerx,
-                      wave.bird.rect.centery - bomb.rect.centery) < wave.radius:  # ← 修正
-                    exps.add(Explosion(bomb, 50))
-                    bomb.kill()
-                    score.value += 1
+        #     for bomb in bombs:
+        #         if math.hypot(wave.bird.rect.centerx - bomb.rect.centerx,
+        #               wave.bird.rect.centery - bomb.rect.centery) < wave.radius:  # ← 修正
+        #             exps.add(Explosion(bomb))
+        #             bomb.kill()
+        #             score.value += 1
 
         bird.update(key_lst, screen)
         aim.update(screen)
