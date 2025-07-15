@@ -11,6 +11,24 @@ HEIGHT = 650  # ゲームウィンドウの高さ
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
+def draw_hp_bar(screen, hp_imgs, current_hp):
+    """
+    現在のHPに応じたHPバー画像を画面に描画する関数
+    引数:
+        screen:描画対象のpygame画面Surface
+        hp_imgs:HPバー画像のリスト(9段階)
+        current_hp:現在のHP(0~8)
+    """
+    index = max(0, min(8 - current_hp, 8))
+    hp_img = hp_imgs[index]
+    scale = 0.2
+    w = int(hp_img.get_width() * scale)
+    h = int(hp_img.get_height() * scale)
+    hp_img = pg.transform.scale(hp_img, (w, h))
+    x = WIDTH - w - 10
+    y = HEIGHT - h + 40
+    screen.blit(hp_img, (x, y))
+
 def check_bound(obj_rct: pg.Rect) -> tuple[bool, bool]:
     """
     オブジェクトが画面内or画面外を判定し，真理値タプルを返す関数
@@ -118,7 +136,7 @@ class Bomb(pg.sprite.Sprite):
         引数1 emy：爆弾を投下する敵機
         引数2 bird：攻撃対象のこうかとん
         """
-        super().__init__()
+        super().__init__() 
         rad = random.randint(10, 50)   # 爆弾円の半径：10以上50以下の乱数
         self.image = pg.Surface((2*rad, 2*rad))
         color = random.choice(__class__.colors)  # 爆弾円の色：クラス変数からランダム選択
@@ -414,6 +432,12 @@ class Wave(pg.sprite.Sprite):
 def main():
     pg.display.set_caption("真！こうかとん無双")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
+    current_hp = 8
+    hp_imgs = []
+    for i in range(1, 10):
+        path = os.path.join("image", "HP", f"pygame{i}.png")
+        img = pg.image.load(path).convert_alpha()
+        hp_imgs.append(img)
     bg_img = pg.image.load(f"fig/pg_bg.jpg")
     score = Score()
     bird = Bird(3, (900, 400))
@@ -471,11 +495,14 @@ def main():
                 exps.add(Explosion(bomb, 50))
                 score.value += 1
             else:
-                bird.change_img(8, screen)  # こうかとん悲しみエフェクト
-                score.update(screen)
-                pg.display.update()
-                time.sleep(2)
-                return
+                current_hp -= 1 #HPを1減らす
+                if current_hp <= 0: #HPが0以下ならゲームオーバー処理
+                    bird.change_img(8, screen)  # こうかとん悲しみエフェクト
+                    score.update(screen)
+                    draw_hp_bar(screen, hp_imgs, current_hp)
+                    pg.display.update()
+                    time.sleep(2)
+                    return
         
         for bomb in pg.sprite.groupcollide(bombs, shields, True, True).keys():#シールドと衝突した爆弾リスト
             exps.add(Explosion(bomb, 50))
@@ -539,6 +566,7 @@ def main():
         waves.update()
         waves.draw(screen)
         score.update(screen)
+        draw_hp_bar(screen, hp_imgs, current_hp)
         cartridges.update()
         cartridges.draw(screen)
         
