@@ -4,6 +4,7 @@
 
 ## 分担追加機能
 * HPバー    ishikawa : 敵の攻撃が当たった時HPバーを減らしていく機能
+* HPバー    ishikawa : 敵の攻撃を受けたときHPバーを減らしていく機能
 * 回復アイテム  watanabe
 * 敵のHPバー    imazu
 * マウスで狙って撃つ suzuki
