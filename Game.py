@@ -32,8 +32,13 @@ class player(pg.sprite.Sprite):
         if path!="":
             if animation:
                 self.anime=[]
+                self.base_anime=[]
+                self.base_frame=frame_len
+                self.base_size=size
+                self.base_speed=speed
                 for i in range(frame_len):
                     self.anime.append(path+str(i)+image_tag)
+                    self.base_anime.append(path+str(i)+image_tag)
                 self.image=pg.transform.rotozoom(pg.image.load(self.anime[0]).convert_alpha(), angle, size)
                 self.rect=self.image.get_rect()
             else:
@@ -53,11 +58,14 @@ class player(pg.sprite.Sprite):
         self.frame_fps=frame_fps
         self.frame_counter=0
         self.direction=0
+        self.frag=False
 
     def animetion(self, path="", image_tag="", frame_len=0):
         self.anime=[]
+        self.frag = True
+        self.frame = frame_len
         for i in range(frame_len):
-            self.anime.append(pg.transform.rotozoom(pg.image.load(path+str(i)+image_tag)))
+            self.anime.append(path+str(i)+image_tag)
 
     def update(self):
         key_lst=pg.key.get_pressed()
@@ -72,23 +80,42 @@ class player(pg.sprite.Sprite):
             if key_lst[key]:
                 sum_move[0]+=item[0]
                 sum_move[1]+=item[1]
-        self.rect.move_ip(sum_move)
+        self.sum_move = sum_move
+        # self.rect.move_ip(sum_move)
         if check_bound(self.rect)!=(True, True):
             self.rect.move_ip(-sum_move[0], -sum_move[1])
-        if sum_move!=[0, 0]:
+        if (sum_move!=[0, 0]) and (not self.frag):
             if self.counter%self.frame_fps==0:
                 self.frame_counter+=1
                 self.image=pg.transform.rotozoom(pg.image.load(self.anime[self.frame_counter%self.frame]).convert_alpha(), 0, self.size)
                 if self.direction==1:
-                        self.image=pg.transform.flip(pg.transform.rotozoom(pg.image.load(self.anime[self.frame_counter%self.frame]).convert_alpha(), 0, self.size),
+                    self.image=pg.transform.flip(pg.transform.rotozoom(pg.image.load(self.anime[self.frame_counter%self.frame]).convert_alpha(), 0, self.size),
                                                        True, False)
         else:
-            self.image=pg.transform.rotozoom(pg.image.load(self.anime[0]).convert_alpha(), 0, self.size)
-            if self.direction==1:
-                self.image=pg.transform.flip(pg.transform.rotozoom(pg.image.load(self.anime[0]).convert_alpha(), 0, self.size),
-                                                   True, False)
+            if not self.frag:
+                if self.direction==1:
+                    self.image=pg.transform.flip(pg.transform.rotozoom(pg.image.load(self.anime[0]).convert_alpha(), 0, self.size),
+                                                    True, False)
+                else:
+                    self.image=pg.transform.rotozoom(pg.image.load(self.anime[0]).convert_alpha(), 0, self.size)
+            else:
+                self.speed*=0.5
+                if self.counter%self.frame_fps==0:
+                    self.frame_counter+=1
+                    self.image=pg.transform.rotozoom(pg.image.load(self.anime[self.frame_counter%self.frame]).convert_alpha(), 0, self.size)
+                    if self.direction==1:
+                        self.image=pg.transform.flip(pg.transform.rotozoom(pg.image.load(self.anime[self.frame_counter%self.frame]).convert_alpha(), 0, self.size),
+                                                       True, False)
+                    if self.frame_counter>self.frame:
+                        self.frag = False
+                        self.anime = []
+                        self.size = self.base_size
+                        self.speed = self.base_speed
         self.counter+=1
-
+        if self.anime==[]:
+            self.anime = self.base_anime
+            self.frame =  self.base_frame
+            
     def draw(self, screen: pg.Surface):
         screen.blit(self.image, self.rect)
 
@@ -97,34 +124,63 @@ class Map_tile(pg.sprite.Sprite):
     """
     マップタイルを表示するクラス
     """
-    def __init__(self, path: str, pos: tuple, angle: int, size: int, collide: bool):
+    def __init__(self, path: str, pos: tuple, angle: int, size: int, collide: bool, player: player):
         super().__init__()
         self.path = path
         self.angle = angle
         self.size = size
         self.collide = collide
+        self.player = player
         self.image = pg.transform.rotozoom(pg.image.load(path), self.angle, self.size)
         self.rect = self.image.get_rect()
         self.image.set_colorkey((0, 0, 0))
-        self.rect.centerx = pos[0]
-        self.rect.centery = pos[1]
+        self.rect.centerx = pos[0] * self.rect.width
+        self.rect.centery = pos[1] * self.rect.height
 
-    def update(self, base_rect: pg.Rect):
-        self.rect.centerx = base_rect.centerx      
-        self.rect.centery = base_rect.centery
+    def update(self):
+        self.rect.move_ip(-self.player.sum_move[0], -self.player.sum_move[1])
           
     def draw(self, screen: pg.Surface):
         screen.blit(self.image, self.rect)
 
+
+def room1():
+    map_lst = []
+    map_col = []
+    for i in range(6):
+        for j in range(6):
+            map_col.append(1)
+        map_lst.append(map_col)
+        map_col = []
+
+
 def main():
     screen = pg.display.set_mode((map_width, map_height))
+    size=1
+    speed=5
+    frame=6
+    zombie=player("image/Animation/zombie_walk2/pixil-frame-", ".png", 
+                   (map_width/2, map_height/2), (0, 0), 0, size, speed, True, frame, 3)
     clock = pg.time.Clock()
+    player_group = pg.sprite.Group()
+    game_group = pg.sprite.Group()
+    player_group.add(zombie)
+    game_group.add(player_group)
+    tile = Map_tile("image/map/map_tile/pixil-frame-0.png", (1, 1), 0, 1, False, zombie)
+    game_group.add(tile)
     counter = 0
     while(True):
         for event in pg.event.get():
             if event.type==pg.QUIT:
                 return
+            if event.type==pg.KEYDOWN:
+                if event.key == pg.K_SPACE:
+                    zombie.animetion("image/Animation/zombie_attack/pixil-frame-", ".png", 9)
+                    zombie.frame_counter=0
+                    zombie.size=1
         screen.fill((50, 50, 50))
+        game_group.update()
+        game_group.draw(screen)
         pg.display.update()
         clock.tick(30)
         counter += 1
