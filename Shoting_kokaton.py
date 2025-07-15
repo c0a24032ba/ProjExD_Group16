@@ -358,7 +358,7 @@ class Wave(pg.sprite.Sprite):
 
 
 def main():
-    pg.display.set_caption("真！こうかとん無双")
+    pg.display.set_caption("こうかとんシューター")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     current_hp = 8
     hp_imgs = []
