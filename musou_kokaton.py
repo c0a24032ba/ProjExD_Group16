@@ -390,6 +390,25 @@ class Gun(pg.sprite.Sprite):
         self.rect.center = bird.rect.center
         self.counter += 1
         screen.blit(self.image, self.rect)
+        
+        
+class Wave(pg.sprite.Sprite):
+    """
+    30秒毎にこうかとんから広がる円で攻撃
+    """
+    def __init__(self, bird) -> None:
+        super().__init__()
+        self.bird = bird
+        self.radius = 0
+        self.image = pg.Surface((WIDTH, HEIGHT), pg.SRCALPHA)
+        self.rect = self.image.get_rect()
+
+    def update(self) -> None:
+        self.radius += 20
+        self.image.fill((0, 0, 0, 0))
+        pg.draw.circle(self.image, (0, 255, 255, 100), self.bird.rect.center, self.radius)
+        if self.radius > max(WIDTH, HEIGHT):
+            self.kill()
 
 
 def main():
@@ -408,6 +427,7 @@ def main():
     cartridges.add(Cartridge((WIDTH/2, HEIGHT/2), 90, -1, -4, -0.5))
     gun = Gun(bird, aim.rect, 1, 4, [Beam, Cartridge], [beams, cartridges])
     pg.mouse.set_visible(False)
+    waves = pg.sprite.Group()
     tmr = 0
     clock = pg.time.Clock()
     score.value=100
@@ -464,6 +484,44 @@ def main():
             bird.change_img(9, screen) # こうかとん喜びエフェクト
             hp.value += 10 #hpを10回復する
 
+        #30秒判定
+        if tmr % 50 == 0 and tmr != 0:
+            waves.add(Wave(bird))
+        #円と敵の距離を比較してあたり判定
+        for wave in waves:
+            for emy in emys:
+                if math.hypot(wave.bird.rect.centerx - emy.rect.centerx,
+                      wave.bird.rect.centery - emy.rect.centery) < wave.radius:
+                    exps.add(Explosion(emy, 100)) 
+                    emy.kill()                    
+                    score.value += 10
+
+            for bomb in bombs:
+                if math.hypot(wave.bird.rect.centerx - bomb.rect.centerx,
+                      wave.bird.rect.centery - bomb.rect.centery) < wave.radius:  # ← 修正
+                    exps.add(Explosion(bomb, 50))
+                    bomb.kill()
+                    score.value += 1
+
+        #30秒判定
+        if tmr % 50 == 0 and tmr != 0:
+            waves.add(Wave(bird))
+        #円と敵の距離を比較してあたり判定
+        for wave in waves:
+            for emy in emys:
+                if math.hypot(wave.bird.rect.centerx - emy.rect.centerx,
+                      wave.bird.rect.centery - emy.rect.centery) < wave.radius:
+                    exps.add(Explosion(emy, 100)) 
+                    emy.kill()                    
+                    score.value += 10
+
+            for bomb in bombs:
+                if math.hypot(wave.bird.rect.centerx - bomb.rect.centerx,
+                      wave.bird.rect.centery - bomb.rect.centery) < wave.radius:  # ← 修正
+                    exps.add(Explosion(bomb, 50))
+                    bomb.kill()
+                    score.value += 1
+
 
         bird.update(key_lst, screen)
         aim.update(screen)
@@ -478,6 +536,8 @@ def main():
         heals.draw(screen)
         exps.update()
         exps.draw(screen)
+        waves.update()
+        waves.draw(screen)
         score.update(screen)
         cartridges.update()
         cartridges.draw(screen)
@@ -494,4 +554,3 @@ if __name__ == "__main__":
     main()
     pg.quit()
     sys.exit()
-    
