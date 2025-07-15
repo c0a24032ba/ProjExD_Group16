@@ -432,7 +432,7 @@ def main():
                     time.sleep(2)
                     return
         
-        for bomb in pg.sprite.groupcollide(bombs, shields, True, True).keys():
+        for bomb in pg.sprite.groupcollide(bombs, shields, True, True).keys(): # type: ignore
             exps.add(Explosion(bomb, 50))
         
         for heal in pg.sprite.spritecollide(bird, heals, True):  # こうかとんと衝突した回復アイテムリスト
